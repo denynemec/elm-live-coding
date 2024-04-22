@@ -15,6 +15,7 @@ import Styles
 -- TODO: 4) Trigger port on button click
 -- TODO: 5) Implement Api module as Opaque type
 -- TODO: 6) Implement Page models as opaque type and compare with previous implementation
+-- TODO: 7) Implement add todo item form
 
 
 type alias Model =
