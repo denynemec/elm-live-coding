@@ -1,0 +1,30 @@
+{
+  "name": "elm-live-coding",
+  "version": "1.0.0",
+  "description": "ELM live coding for CTU",
+  "author": "Daniel Němec",
+  "license": "MIT",
+  "engines": {
+    "node": "^18",
+    "npm": ">=9 <=10"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "format": "npm run format:elm && npm run format:prettier",
+    "format:elm": "elm-format --yes ./src/",
+    "format:prettier": "prettier --write ./src/js README.md",
+    "server": "nodemon ./server/index.js"
+  },
+  "devDependencies": {
+    "elm": "^0.19.1-6",
+    "elm-format": "^0.8.7",
+    "nodemon": "^3.1.0",
+    "prettier": "^3.2.5",
+    "vite": "^5.2.9",
+    "vite-plugin-elm": "^2.9.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
