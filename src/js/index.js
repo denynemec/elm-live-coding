@@ -1,6 +1,14 @@
 import '../main.css';
 import { Elm } from '../Main.elm';
 
-Elm.Main.init({
+const app = Elm.Main.init({
   node: document.getElementById('root'),
+  flags: {
+    api: 'http://localhost:4000/',
+    counter: +localStorage.getItem('counter'),
+  },
+});
+
+app.ports.saveCounter.subscribe((counter) => {
+  localStorage.setItem('counter', counter);
 });
