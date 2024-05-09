@@ -13,6 +13,7 @@ import Url.Parser as Parser
 type Route
     = Counter
     | TodoList
+    | Playground
 
 
 parser : Parser.Parser (Route -> a) a
@@ -20,6 +21,7 @@ parser =
     Parser.oneOf
         [ Parser.map Counter (Parser.s "counter")
         , Parser.map TodoList (Parser.s "todo-list")
+        , Parser.map Playground (Parser.s playgroundPathname)
         ]
 
 
@@ -41,3 +43,11 @@ routeToString route =
 
         TodoList ->
             "todo-list"
+
+        Playground ->
+            playgroundPathname
+
+
+playgroundPathname : String
+playgroundPathname =
+    "playground"

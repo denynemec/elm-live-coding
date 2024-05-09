@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 
 const error = false;
 
@@ -17,6 +18,8 @@ let todos = [
 ];
 
 const app = express();
+
+app.use(cors());
 
 app.use((_, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');

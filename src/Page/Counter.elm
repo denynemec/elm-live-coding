@@ -18,13 +18,13 @@ port saveCounter : Encode.Value -> Cmd msg
 -- TODO: 2) Add Decrement msg
 
 
-type alias Model =
-    Int
+type Model
+    = ModelInternal { counter : Int }
 
 
 init : Int -> ( Model, Cmd Msg )
 init initCounter =
-    ( initCounter
+    ( ModelInternal { counter = initCounter }
     , Cmd.none
     )
 
@@ -36,26 +36,26 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update msg ((ModelInternal ({ counter } as modelPayload)) as model) =
     case msg of
         Increment ->
-            ( model + 1
+            ( ModelInternal { modelPayload | counter = counter + 1 }
             , Cmd.none
             )
 
         Decrement decrementValue ->
-            ( model - decrementValue
+            ( ModelInternal { modelPayload | counter = counter - decrementValue }
             , Cmd.none
             )
 
         ClickedCallJS ->
             ( model
-            , saveCounter <| Encode.int model
+            , saveCounter <| Encode.int counter
             )
 
 
 view : (Msg -> msg) -> Model -> Browser.Document msg
-view wrapMsg model =
+view wrapMsg (ModelInternal { counter }) =
     { title = "Counter Page"
     , body =
         [ Header.view <| Just Route.Counter
@@ -68,7 +68,7 @@ view wrapMsg model =
                     , Button.view (Decrement 5) "Decrement 5!"
                     , Button.view ClickedCallJS "Save counter!"
                     ]
-                , Html.text <| "Current value: " ++ String.fromInt model
+                , Html.text <| "Current value: " ++ String.fromInt counter
                 ]
         ]
     }

@@ -1,6 +1,6 @@
 module Page.TodoList exposing (Model, Msg, init, update, view)
 
-import Bitwise exposing (complement)
+import Api
 import Browser
 import Components.Header as Header
 import Html exposing (Html)
@@ -40,12 +40,9 @@ type Loading data
     | Success data
 
 
-getTodoItemList : String -> Cmd Msg
-getTodoItemList api =
-    Http.get
-        { url = api ++ "todos"
-        , expect = Http.expectJson FetchedTodoList (Decode.list decodeTodoItem)
-        }
+getTodoItemList : Api.Api -> Cmd Msg
+getTodoItemList =
+    Api.get "todos" FetchedTodoList (Decode.list decodeTodoItem)
 
 
 decodeTodoItem : Decode.Decoder TodoItem
@@ -60,7 +57,7 @@ type alias Model =
     { todoItemList : Loading TodoItemList }
 
 
-init : String -> ( Model, Cmd Msg )
+init : Api.Api -> ( Model, Cmd Msg )
 init api =
     ( { todoItemList = Loading }
     , getTodoItemList api

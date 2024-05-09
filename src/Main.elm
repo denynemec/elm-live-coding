@@ -1,11 +1,14 @@
 module Main exposing (main)
 
+import Api
 import Browser
 import Browser.Navigation as Navigation
 import Page.Counter as Counter
 import Page.NotFound as NotFound
+import Page.Playground as Playground
 import Page.TodoList as TodoList
 import Route
+import Taco
 import Url
 
 
@@ -19,12 +22,14 @@ type alias Model =
     { flags : Flags
     , key : Navigation.Key
     , page : Page
+    , taco : Taco.Taco
     }
 
 
 type Page
     = Counter Counter.Model
     | TodoList TodoList.Model
+    | Playground Playground.Model
     | NotFound
 
 
@@ -33,30 +38,39 @@ type Msg
     | ClickedLink Browser.UrlRequest
     | TodoListMsg TodoList.Msg
     | CounterMsg Counter.Msg
+    | PlaygroundMsg Playground.Msg
 
 
 init : Flags -> Url.Url -> Navigation.Key -> ( Model, Cmd Msg )
 init flags url key =
+    let
+        api =
+            Api.init
+                { apiPrefix = flags.api
+                , token = "MAIN INIT TOKEN"
+                }
+    in
     url
-        |> urlToPage flags
+        |> urlToPage flags api
         |> Tuple.mapFirst
             (\page ->
                 { flags = flags
                 , key = key
                 , page = page
+                , taco = Taco.init api
                 }
             )
 
 
-urlToPage : Flags -> Url.Url -> ( Page, Cmd Msg )
-urlToPage flags =
+urlToPage : Flags -> Api.Api -> Url.Url -> ( Page, Cmd Msg )
+urlToPage flags api =
     Route.fromUrl
-        >> Maybe.map (routeToPage flags)
+        >> Maybe.map (routeToPage flags api)
         >> Maybe.withDefault ( NotFound, Cmd.none )
 
 
-routeToPage : Flags -> Route.Route -> ( Page, Cmd Msg )
-routeToPage { api, counter } route =
+routeToPage : Flags -> Api.Api -> Route.Route -> ( Page, Cmd Msg )
+routeToPage { counter } api route =
     case route of
         Route.TodoList ->
             TodoList.init api
@@ -66,9 +80,13 @@ routeToPage { api, counter } route =
             Counter.init counter
                 |> Tuple.mapBoth Counter (Cmd.map CounterMsg)
 
+        Route.Playground ->
+            Playground.init
+                |> Tuple.mapBoth Playground (Cmd.map PlaygroundMsg)
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ flags, key, page } as model) =
+update msg ({ flags, key, page, taco } as model) =
     let
         noUpdate =
             ( model
@@ -90,7 +108,7 @@ update msg ({ flags, key, page } as model) =
 
         ChangedUrl url ->
             url
-                |> urlToPage flags
+                |> urlToPage flags (Taco.getApi taco)
                 |> Tuple.mapFirst (\page_ -> { model | page = page_ })
 
         CounterMsg pageMsg ->
@@ -117,6 +135,27 @@ update msg ({ flags, key, page } as model) =
                 _ ->
                     noUpdate
 
+        PlaygroundMsg pageMsg ->
+            case page of
+                Playground pageModel ->
+                    pageModel
+                        |> Playground.update pageMsg
+                        |> (\( pageModel_, pageCmd, tacoMsg ) ->
+                                let
+                                    updatedTaco =
+                                        Taco.update tacoMsg taco
+                                in
+                                ( { model
+                                    | page = Playground pageModel_
+                                    , taco = updatedTaco
+                                  }
+                                , Cmd.map PlaygroundMsg pageCmd
+                                )
+                           )
+
+                _ ->
+                    noUpdate
+
 
 view : Model -> Browser.Document Msg
 view { page } =
@@ -126,6 +165,9 @@ view { page } =
 
         TodoList todoListModel ->
             TodoList.view TodoListMsg todoListModel
+
+        Playground playgroundModel ->
+            Playground.view PlaygroundMsg playgroundModel
 
         NotFound ->
             NotFound.view

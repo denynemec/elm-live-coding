@@ -50,6 +50,7 @@ routeList : List Route.Route
 routeList =
     [ Route.Counter
     , Route.TodoList
+    , Route.Playground
     ]
 
 
@@ -61,3 +62,6 @@ routeToLinkText route =
 
         Route.TodoList ->
             "Todo list"
+
+        Route.Playground ->
+            "Playground"
