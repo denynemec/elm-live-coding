@@ -4,8 +4,13 @@ import Browser
 import Components.Header as Header
 import Html
 import Html.Attributes as Attributes
+import Http
+import Json.Decode as Decode
+import Json.Decode.Pipeline as Pipeline
+import RemoteData
 import Route
 import Styles
+import Utils.Api as Api
 
 
 
@@ -19,39 +24,97 @@ import Styles
 
 
 type alias Model =
-    ()
+    { todoItemList : RemoteData.WebData TodoItemList
+    }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( ()
-    , Cmd.none
+fetchTodoListCmd : Api.Api -> Cmd Msg
+fetchTodoListCmd =
+    Api.updateRefreshToken
+        >> Api.get "/todos" FetchedTodoItems decodeTodoItemList
+
+
+type alias TodoItem =
+    { id : Int
+    , label : String
+    , completed : Bool
+    }
+
+
+type alias TodoItemList =
+    List TodoItem
+
+
+decodeTodoItemList : Decode.Decoder TodoItemList
+decodeTodoItemList =
+    Decode.list decodeTodoItem
+
+
+decodeTodoItem : Decode.Decoder TodoItem
+decodeTodoItem =
+    Decode.succeed TodoItem
+        |> Pipeline.required "id" Decode.int
+        |> Pipeline.required "label" Decode.string
+        |> Pipeline.required "completed" Decode.bool
+
+
+init : Api.Api -> ( Model, Cmd Msg )
+init api =
+    ( { todoItemList = RemoteData.Loading }
+    , fetchTodoListCmd api
     )
 
 
 type Msg
-    = Increment
+    = FetchedTodoItems (RemoteData.WebData TodoItemList)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Increment ->
-            ( model
+        FetchedTodoItems webData ->
+            ( { model | todoItemList = webData }
             , Cmd.none
             )
 
 
 view : (Msg -> msg) -> Model -> Browser.Document msg
-view wrapMsg _ =
+view wrapMsg model =
     { title = "Todo List Page"
     , body =
         [ Header.view <| Just Route.TodoList
-        , Html.map wrapMsg <|
-            Html.div Styles.centeredColumn
-                [ Html.h1 [] [ Html.text "Todo list" ]
-                , Html.div [ Attributes.style "padding-top" "20px" ]
-                    []
-                ]
+        , case model.todoItemList of
+            RemoteData.NotAsked ->
+                Html.text "Not Asked..."
+
+            RemoteData.Loading ->
+                Html.text "Loading ..."
+
+            RemoteData.Failure _ ->
+                Html.text "Error"
+
+            RemoteData.Success data ->
+                Html.map wrapMsg <|
+                    Html.div Styles.centeredColumn
+                        [ Html.h1 [] [ Html.text "Todo list" ]
+                        , Html.div [ Attributes.style "padding-top" "20px" ]
+                            [ Html.ul Styles.todoItemListListStyle <| List.map todoItemView data ]
+                        ]
         ]
     }
+
+
+todoItemView : TodoItem -> Html.Html Msg
+todoItemView { label, completed } =
+    let
+        checkText =
+            if completed then
+                "✓"
+
+            else
+                ""
+    in
+    Html.li Styles.todoItemStyle
+        [ Html.div Styles.todoItemCheckStyle [ Html.text checkText ]
+        , Html.text label
+        ]

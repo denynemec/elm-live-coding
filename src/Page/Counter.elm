@@ -27,13 +27,19 @@ init =
 
 type Msg
     = Increment
+    | Decrement
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Increment ->
-            ( model
+            ( model + 1
+            , Cmd.none
+            )
+
+        Decrement ->
+            ( model - 1
             , Cmd.none
             )
 
@@ -54,6 +60,13 @@ view wrapMsg model =
                         [ Html.text "Increment!" ]
                     ]
                 , Html.text <| "Current value: " ++ String.fromInt model
+                , Html.div [ Attributes.style "padding-top" "20px" ]
+                    [ Html.button
+                        [ Events.onClick Decrement
+                        , Attributes.style "width" "100px"
+                        ]
+                        [ Html.text "Decrement!" ]
+                    ]
                 ]
         ]
     }

@@ -2,20 +2,20 @@ module Main exposing (main)
 
 import Browser
 import Browser.Navigation as Navigation
-import Html
 import Page.Counter as Counter
 import Page.NotFound as NotFound
 import Page.TodoList as TodoList
 import Route
 import Url
+import Utils.Api as Api
 
 
 type alias Flags =
-    ()
+    { baseApiUrl : String }
 
 
 type alias Model =
-    { api : String
+    { api : Api.Api
     , key : Navigation.Key
     , page : Page
     }
@@ -34,36 +34,36 @@ type Msg
     | CounterMsg Counter.Msg
 
 
-api_ : String
-api_ =
-    ""
-
-
 init : Flags -> Url.Url -> Navigation.Key -> ( Model, Cmd Msg )
-init _ url key =
+init { baseApiUrl } url key =
+    let
+        api =
+            Api.init baseApiUrl
+    in
     url
-        |> urlToPage
+        |> urlToPage api
         |> Tuple.mapFirst
             (\page ->
-                { api = api_
+                { api = api
                 , key = key
                 , page = page
                 }
             )
 
 
-urlToPage : Url.Url -> ( Page, Cmd Msg )
-urlToPage =
+urlToPage : Api.Api -> Url.Url -> ( Page, Cmd Msg )
+urlToPage api =
     Route.fromUrl
-        >> Maybe.map routeToPage
+        >> Maybe.map (routeToPage api)
         >> Maybe.withDefault ( NotFound, Cmd.none )
 
 
-routeToPage : Route.Route -> ( Page, Cmd Msg )
-routeToPage route =
+routeToPage : Api.Api -> Route.Route -> ( Page, Cmd Msg )
+routeToPage api route =
     case route of
         Route.TodoList ->
-            TodoList.init
+            api
+                |> TodoList.init
                 |> Tuple.mapBoth TodoList (Cmd.map TodoListMsg)
 
         Route.Counter ->
@@ -72,7 +72,7 @@ routeToPage route =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ key, page } as model) =
+update msg ({ api, key, page } as model) =
     let
         noUpdate =
             ( model
@@ -94,7 +94,7 @@ update msg ({ key, page } as model) =
 
         ChangedUrl url ->
             url
-                |> urlToPage
+                |> urlToPage api
                 |> Tuple.mapFirst (\page_ -> { model | page = page_ })
 
         CounterMsg pageMsg ->
