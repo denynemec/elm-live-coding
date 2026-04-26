@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Api
 import Browser
 import Browser.Navigation as Navigation
 import Html
@@ -11,11 +12,11 @@ import Url
 
 
 type alias Flags =
-    ()
+    { api : String }
 
 
 type alias Model =
-    { api : String
+    { api : Api.Api
     , key : Navigation.Key
     , page : Page
     }
@@ -34,36 +35,32 @@ type Msg
     | CounterMsg Counter.Msg
 
 
-api_ : String
-api_ =
-    ""
-
-
 init : Flags -> Url.Url -> Navigation.Key -> ( Model, Cmd Msg )
-init _ url key =
+init { api } url key =
     url
-        |> urlToPage
+        |> urlToPage api
         |> Tuple.mapFirst
             (\page ->
-                { api = api_
+                { api = api
                 , key = key
                 , page = page
                 }
             )
 
 
-urlToPage : Url.Url -> ( Page, Cmd Msg )
-urlToPage =
+urlToPage : Api.Api -> Url.Url -> ( Page, Cmd Msg )
+urlToPage api =
     Route.fromUrl
-        >> Maybe.map routeToPage
+        >> Maybe.map (routeToPage api)
         >> Maybe.withDefault ( NotFound, Cmd.none )
 
 
-routeToPage : Route.Route -> ( Page, Cmd Msg )
-routeToPage route =
+routeToPage : Api.Api -> Route.Route -> ( Page, Cmd Msg )
+routeToPage api route =
     case route of
         Route.TodoList ->
-            TodoList.init
+            api
+                |> TodoList.init
                 |> Tuple.mapBoth TodoList (Cmd.map TodoListMsg)
 
         Route.Counter ->
@@ -72,7 +69,7 @@ routeToPage route =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ key, page } as model) =
+update msg ({ api, key, page } as model) =
     let
         noUpdate =
             ( model
@@ -94,7 +91,7 @@ update msg ({ key, page } as model) =
 
         ChangedUrl url ->
             url
-                |> urlToPage
+                |> urlToPage api
                 |> Tuple.mapFirst (\page_ -> { model | page = page_ })
 
         CounterMsg pageMsg ->

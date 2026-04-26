@@ -1,9 +1,14 @@
-module Page.TodoList exposing (Model, Msg, init, update, view)
+port module Page.TodoList exposing (Model, Msg, init, update, view)
 
 import Browser
 import Components.Header as Header
 import Html
 import Html.Attributes as Attributes
+import Html.Events as Events
+import Http
+import Json.Decode as Decode
+import Json.Decode.Pipeline as Pipeline
+import Json.Encode as Encode
 import Route
 import Styles
 
@@ -18,40 +23,132 @@ import Styles
 -- TODO: 7) Implement add todo item form
 
 
+port sendToJs : Encode.Value -> Cmd msg
+
+
+type alias IDRecord r idType =
+    { r
+        | id : idType
+    }
+
+
+type alias TodoItem =
+    IDRecord
+        { label2 : String
+        , completed : Bool
+        }
+        Int
+
+
+type alias TodoItemList =
+    List TodoItem
+
+
+decodeTodoItemList : Decode.Decoder TodoItemList
+decodeTodoItemList =
+    Decode.list decodeTodoItem
+
+
+createTodoItem : Int -> String -> Bool -> TodoItem
+createTodoItem id newTitleInTodoItem completed =
+    { id = id
+    , label2 = newTitleInTodoItem
+    , completed = completed
+    }
+
+
+decodeTodoItem : Decode.Decoder TodoItem
+decodeTodoItem =
+    Decode.succeed createTodoItem
+        |> Pipeline.required "id" Decode.int
+        |> Pipeline.required "title" Decode.string
+        |> Pipeline.required "completed" Decode.bool
+
+
+fetchTodoItems : String -> Cmd Msg
+fetchTodoItems api =
+    Http.get
+        { url = api ++ "/todos"
+        , expect = Http.expectJson FetchedTodoItems decodeTodoItemList
+        }
+
+
+type Loading
+    = LoadingData
+    | Error Http.Error
+    | Success TodoItemList
+
+
 type alias Model =
-    ()
+    { data : Loading
+    }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( ()
-    , Cmd.none
+init : String -> ( Model, Cmd Msg )
+init api =
+    ( { data = LoadingData }
+    , fetchTodoItems api
     )
 
 
 type Msg
-    = Increment
+    = FetchedTodoItems (Result Http.Error TodoItemList)
+    | ClickedJSPort Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Increment ->
-            ( model
+        FetchedTodoItems (Err httpError) ->
+            ( { model | data = Error httpError }
             , Cmd.none
+            )
+
+        FetchedTodoItems (Ok data) ->
+            ( { model | data = Success data }
+            , Cmd.none
+            )
+
+        ClickedJSPort valueToJs ->
+            ( model
+            , sendToJs <| Encode.int valueToJs
             )
 
 
 view : (Msg -> msg) -> Model -> Browser.Document msg
-view wrapMsg _ =
+view wrapMsg { data } =
     { title = "Todo List Page"
     , body =
         [ Header.view <| Just Route.TodoList
         , Html.map wrapMsg <|
             Html.div Styles.centeredColumn
                 [ Html.h1 [] [ Html.text "Todo list" ]
-                , Html.div [ Attributes.style "padding-top" "20px" ]
-                    []
+                , Html.button
+                    [ Attributes.style "padding-top" "20px"
+                    , Events.onClick <| ClickedJSPort 42
+                    ]
+                    [ Html.text "Port to JS" ]
+                , Html.div [ Attributes.style "padding-top" "20px" ] [ dataView data ]
                 ]
         ]
     }
+
+
+dataView : Loading -> Html.Html Msg
+dataView loading =
+    case loading of
+        LoadingData ->
+            Html.text "Loading ..."
+
+        Error _ ->
+            Html.text "Something went wrong ..."
+
+        Success data ->
+            data
+                |> List.map todoItemView
+                |> Html.div []
+
+
+todoItemView : TodoItem -> Html.Html msg
+todoItemView { label2 } =
+    Html.div [] [ Html.text label2 ]

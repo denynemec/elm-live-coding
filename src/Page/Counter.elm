@@ -10,7 +10,7 @@ import Styles
 
 
 
--- TODO: 1) Implement Increment logic
+-- TODO: 1) Implement Increment logic DONE
 -- TODO: 2) Add Decrement msg
 
 
@@ -20,20 +20,26 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( 0
+    ( 42
     , Cmd.none
     )
 
 
 type Msg
     = Increment
+    | Decrement Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Increment ->
-            ( model
+            ( model + 1
+            , Cmd.none
+            )
+
+        Decrement decrementValue ->
+            ( model - decrementValue
             , Cmd.none
             )
 
@@ -46,14 +52,21 @@ view wrapMsg model =
         , Html.map wrapMsg <|
             Html.div Styles.centeredColumn
                 [ Html.h1 [] [ Html.text "Counter" ]
-                , Html.div [ Attributes.style "padding-top" "20px" ]
-                    [ Html.button
-                        [ Events.onClick Increment
-                        , Attributes.style "width" "100px"
-                        ]
-                        [ Html.text "Increment!" ]
-                    ]
+                , buttonView "Increment" Increment
                 , Html.text <| "Current value: " ++ String.fromInt model
+                , buttonView "Decrement 3" (Decrement 3)
+                , buttonView "Decrement 7" <| Decrement 7
                 ]
         ]
     }
+
+
+buttonView : String -> msg -> Html.Html msg
+buttonView text msg =
+    Html.div [ Attributes.style "padding-top" "20px" ]
+        [ Html.button
+            [ Events.onClick msg
+            , Attributes.style "width" "100px"
+            ]
+            [ Html.text text ]
+        ]
