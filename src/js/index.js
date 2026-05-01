@@ -3,7 +3,7 @@ import { Elm } from '../Main.elm';
 
 const app = Elm.Main.init({
   node: document.getElementById('root'),
-  flags: {api: "https://jsonplaceholder.typicode.com"}
+  flags: {api: "http://localhost:4000"}
 });
 
 app.ports.sendToJs.subscribe(function (data) {

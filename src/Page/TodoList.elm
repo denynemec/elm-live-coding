@@ -61,7 +61,7 @@ decodeTodoItem : Decode.Decoder TodoItem
 decodeTodoItem =
     Decode.succeed createTodoItem
         |> Pipeline.required "id" Decode.int
-        |> Pipeline.required "title" Decode.string
+        |> Pipeline.required "label" Decode.string
         |> Pipeline.required "completed" Decode.bool
 
 
