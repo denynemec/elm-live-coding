@@ -1,5 +1,6 @@
 port module Page.TodoList exposing (Model, Msg, init, update, view)
 
+import Api
 import Browser
 import Components.Header as Header
 import Html
@@ -65,12 +66,10 @@ decodeTodoItem =
         |> Pipeline.required "completed" Decode.bool
 
 
-fetchTodoItems : String -> Cmd Msg
-fetchTodoItems api =
-    Http.get
-        { url = api ++ "/todos"
-        , expect = Http.expectJson FetchedTodoItems decodeTodoItemList
-        }
+fetchTodoItems : Api.Api -> Cmd Msg
+fetchTodoItems =
+    Api.refreshToken Api.tokenV2
+        >> Api.get "/todos" FetchedTodoItems decodeTodoItemList
 
 
 type Loading
@@ -79,14 +78,13 @@ type Loading
     | Success TodoItemList
 
 
-type alias Model =
-    { data : Loading
-    }
+type Model
+    = Model { data : Loading }
 
 
-init : String -> ( Model, Cmd Msg )
+init : Api.Api -> ( Model, Cmd Msg )
 init api =
-    ( { data = LoadingData }
+    ( Model { data = LoadingData }
     , fetchTodoItems api
     )
 
@@ -97,26 +95,26 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update msg ((Model model) as modelRaw) =
     case msg of
         FetchedTodoItems (Err httpError) ->
-            ( { model | data = Error httpError }
+            ( Model { model | data = Error httpError }
             , Cmd.none
             )
 
         FetchedTodoItems (Ok data) ->
-            ( { model | data = Success data }
+            ( Model { model | data = Success data }
             , Cmd.none
             )
 
         ClickedJSPort valueToJs ->
-            ( model
+            ( modelRaw
             , sendToJs <| Encode.int valueToJs
             )
 
 
 view : (Msg -> msg) -> Model -> Browser.Document msg
-view wrapMsg { data } =
+view wrapMsg (Model { data }) =
     { title = "Todo List Page"
     , body =
         [ Header.view <| Just Route.TodoList

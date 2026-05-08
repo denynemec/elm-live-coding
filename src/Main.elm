@@ -37,11 +37,15 @@ type Msg
 
 init : Flags -> Url.Url -> Navigation.Key -> ( Model, Cmd Msg )
 init { api } url key =
+    let
+        apiUtil =
+            Api.createApi api
+    in
     url
-        |> urlToPage api
+        |> urlToPage apiUtil
         |> Tuple.mapFirst
             (\page ->
-                { api = api
+                { api = apiUtil
                 , key = key
                 , page = page
                 }
